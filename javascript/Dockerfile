@@ -8,7 +8,7 @@ ENV NPM_CONFIG_LOGLEVEL warn
 RUN apt-get update --fix-missing && apt-get install -y curl xz-utils build-essential python3 git vim bash
 
 # Add NodeSource repository to install Node.js
-RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+RUN curl -fsSL https://deb.nodesource.com/setup_21.x | bash -
 
 # Install Node.js and npm
 RUN apt-get install -y nodejs
