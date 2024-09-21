@@ -26,6 +26,8 @@ RUN curl -fsSL https://deb.nodesource.com/setup_21.x | bash - && \
     apt-get install -y --no-install-recommends nodejs && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
+COPY home/* /home/node/
+
 RUN useradd -m node -s /bin/bash && \
     mkdir -p /com.docker.devenvironments.code && \
     chown node:node /com.docker.devenvironments.code && \
@@ -34,10 +36,7 @@ RUN useradd -m node -s /bin/bash && \
 
 RUN echo 'node ALL=(ALL) NOPASSWD: /usr/bin/docker' >> /etc/sudoers
 
-
 USER node
-
-COPY home/* /home/node/
 
 WORKDIR /com.docker.devenvironments.code
 
