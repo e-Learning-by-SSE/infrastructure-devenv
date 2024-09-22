@@ -34,17 +34,21 @@ image:
 	@echo "  - INSTALL_DOCKER=$(INSTALL_DOCKER)"
 	@echo "  - INSTALL_NODEJS=$(INSTALL_NODEJS)"
 	@echo "  - TAGS=$(TAGS_ARRAY)"
-	# Build the image with the first tag
 	docker build \
 		--build-arg INSTALL_FISH=$(INSTALL_FISH) \
 		--build-arg INSTALL_DOCKER=$(INSTALL_DOCKER) \
 		--build-arg INSTALL_NODEJS=$(INSTALL_NODEJS) \
+		--build-arg BASE_IMAGE=$(BASE_IMAGE) \
 		-t $(IMAGE_NAME):$(firstword $(TAGS_ARRAY)) .
-	# Tag the image with all specified tags
 	for tag in $(wordlist 2,$(words $(TAGS_ARRAY)),$(TAGS_ARRAY)); do \
 		echo "Tagging image with: $$tag"; \
 		docker tag $(IMAGE_NAME):$(firstword $(TAGS_ARRAY)) $(IMAGE_NAME):$$tag; \
 	done
+
+# This is a little bit hacky, we try to utilize the existing bookworm-slim image. Install scripts will break so the is only compatible with no features enabled.
+.PHONY: slim-image
+slim-image:
+	$(MAKE) image BASE_IMAGE=node:21-bookworm-slim
 
 # Publish the Docker image with optional tags
 .PHONY: publish

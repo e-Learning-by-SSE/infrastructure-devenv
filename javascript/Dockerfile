@@ -1,9 +1,9 @@
-FROM debian:12
-
+ARG BASE_IMAGE=debian:bookworm
 ARG INSTALL_FISH=false
 ARG INSTALL_DOCKER=false
 ARG INSTALL_NODEJS=true
 
+FROM ${BASE_IMAGE}
 ENV NPM_CONFIG_LOGLEVEL=warn
 
 ## <BASE Preparation>
@@ -18,12 +18,12 @@ RUN apt-get update --fix-missing && apt-get install -y \
     sudo && \
     apt-get clean
     
-COPY home/* /home/node/
+COPY home/* /home/devuser/
 
-RUN useradd -m node -s /bin/bash && \
+RUN useradd -m devuser -s /bin/bash && \
     mkdir -p /com.docker.devenvironments.code && \
-    chown node:node /com.docker.devenvironments.code && \
-    chown -R node:node /home/node
+    chown devuser:devuser /com.docker.devenvironments.code && \
+    chown -R devuser:devuser /home/devuser
 ## </ Base Preparation>
 
 ## <Feature Tags>
@@ -43,7 +43,7 @@ RUN if [ "$INSTALL_DOCKER" = "true" ]; then \
 
 ## </ Feature Tags>
  
-USER node
+USER devuser
 
 ## <Non-Root Features>
 ## </Non-Root Features

@@ -24,3 +24,8 @@ For a full feature build which includes a publish:
 ```makefile
 make image FISH=true NODEJS=true DOCKER=true TAG=latest,v3-node21 publish
 ```
+
+And for a slim version:
+```makefile
+make slim-image publish TAG=v3-slim 
+```
