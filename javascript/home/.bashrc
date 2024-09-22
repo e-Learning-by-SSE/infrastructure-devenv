@@ -137,4 +137,3 @@ __bash_prompt
 export PROMPT_DIRTRIM=4
 alias nx='npx nx'
 
-exec fish

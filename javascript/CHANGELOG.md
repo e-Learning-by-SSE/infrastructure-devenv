@@ -8,6 +8,9 @@
 - default user is now `devuser`
 - Base image is now debian bookworm
 
+### Fixed
+- Fix wrong `fish` exec in bashrc, even when feature is disabled
+
 ## [v3] - 22.09.2024
 
 ### Added
