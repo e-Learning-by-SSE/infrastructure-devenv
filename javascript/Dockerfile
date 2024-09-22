@@ -21,8 +21,8 @@ RUN apt-get update --fix-missing && apt-get install -y \
 COPY home/* /home/devuser/
 
 RUN useradd -m devuser -s /bin/bash && \
-    mkdir -p /com.docker.devenvironments.code && \
-    chown devuser:devuser /com.docker.devenvironments.code && \
+    mkdir -p /code && \
+    chown devuser:devuser /code && \
     chown -R devuser:devuser /home/devuser
 ## </ Base Preparation>
 
@@ -48,8 +48,8 @@ USER devuser
 ## <Non-Root Features>
 ## </Non-Root Features
 
-WORKDIR /com.docker.devenvironments.code
-VOLUME /com.docker.devenvironments.code
+WORKDIR /code
+VOLUME /code
 EXPOSE 3000
 CMD ["/bin/bash"]
 
