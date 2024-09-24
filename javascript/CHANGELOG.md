@@ -3,10 +3,15 @@
 
 ## [upcoming] - ??
 
+### Added
+- Default alias for "nx" -> 'npx nx' 
+
 ### Changed
 - Default working dir is changed from `/com.docker.devenvironments.code` to `/code`. 
 - default user is now `devuser`
 - Base image is now debian bookworm
+- Set colors of the fish (hydro) prompt
+
 
 ### Fixed
 - Fix wrong `fish` exec in bashrc, even when feature is disabled

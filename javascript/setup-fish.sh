@@ -38,5 +38,20 @@ curl -o /tmp/fisher.fish -sL https://raw.githubusercontent.com/jorgebucaran/fish
      source /tmp/fisher.fish && \
      fisher install jorgebucaran/fisher && \
      fisher install jorgebucaran/nvm.fish && \
-     fisher install jorgebucaran/hydro
+     fisher install jorgebucaran/hydro && \
+     
+     alias nx="npx nx" --save
+     alias ng="npx ng" --save
+     #alias npm="npx npm" --save
+     alias yarn="npx yarn" --save
+     alias tsc="npx tsc" --save
+     alias eslint="npx eslint" --save
+     alias prettier="npx prettier" --save
+     alias jest="npx jest" --save
+     
+     echo "set -x NVM_DIR $HOME/.nvm" >> ~/.config/fish/config.fish
+
+     set --universal hydro_color_pwd blue
+     set --universal hydro_color_git yellow
+
 EOF
