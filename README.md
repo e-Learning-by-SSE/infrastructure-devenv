@@ -3,7 +3,7 @@
 
 ## Javascript
 
-The javascript container is especially for developments with jaavscript/typescript projects. 
+The javascript container is especially for developments with javascript/typescript projects. 
 
 ### Usage
 Pull and run it. We recommend to mount your code to `com.docker.devenvironments.code` since this is the default working directory. The directory was choosen to create backwards compatbility with docker desktop devenvironments. 
