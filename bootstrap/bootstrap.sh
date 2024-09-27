@@ -5,7 +5,7 @@ usage() {
   echo "Usage: $0 [-d|--delete] [-f|--file compose-file] -r|--repo <GitHub Repository URL> -p|--project <Project Name> [--setup-compose <js>]"
   echo "  -d, --delete         Delete the volume before cloning"
   echo "  -f, --file           Specify the Docker Compose file (default: compose-dev.yml)"
-  echo "  -r, --repo           Specify the GitHub Repository URL"
+  echo "  -r, --repo           Specify the GitHub Repository URL (only needed for the initial clone)"
   echo "  -p, --project        Specify the Project Name"
   echo "  --setup-compose      Generate a default Docker Compose file for the specified project type (e.g., js)"
   exit 1
@@ -38,13 +38,16 @@ while true; do
   esac
 done
 
-# Check if required arguments are provided
-if [ -z "$REPO_URL" ] || [ -z "$PROJECT_NAME" ] && [ "$SETUP_COMPOSE" = false ]; then
-  usage
-fi
-
 # Set volume name based on project name
 VOLUME_NAME="${PROJECT_NAME}-repository"
+
+# Check if required arguments are provided when volume does not exist
+VOLUME_EXISTS=$(docker volume ls --format '{{.Name}}' | grep -w ${VOLUME_NAME})
+
+if [ -z "$VOLUME_EXISTS" ] && [ -z "$REPO_URL" ]; then
+  echo "Error: The --repo option is required for the initial repository clone."
+  usage
+fi
 
 # Function to generate Docker Compose file
 generate_compose_file() {
@@ -66,7 +69,7 @@ services:
       - type: bind
         source: /var/run/docker.sock
         target: /var/run/docker.sock
-      - codebase:/com.docker.devenvironments.code
+      - codebase:/code
 
 volumes:
   codebase:
@@ -88,10 +91,8 @@ if $DELETE_VOLUME; then
 fi
 
 # Check if the volume already exists
-VOLUME_EXISTS=$(docker volume ls --format '{{.Name}}' | grep -w ${VOLUME_NAME})
-
 if [ -z "$VOLUME_EXISTS" ]; then
-  # Use a Docker container to clone the repository into the volume
+  # Clone the repository into the volume if it doesn't exist
   echo "Cloning repository ${REPO_URL} into volume ${VOLUME_NAME}..."
   if ! docker run --rm -it -v ${VOLUME_NAME}:/${PROJECT_NAME} docker git clone ${REPO_URL} /${PROJECT_NAME}; then
     echo "Failed to clone repository."
@@ -106,12 +107,17 @@ if [ -z "$VOLUME_EXISTS" ]; then
     exit 1
   fi
   echo "Permissions set successfully."
-
 else
-  echo "Volume ${VOLUME_NAME} already exists. Skipping clone."
+  RED='\033[0;31m'
+  YELLOW='\033[1;33m'
+  NC='\033[0m' # No Color
+
+  # Warn if the volume already exists
+  echo -e "${YELLOW}Volume ${VOLUME_NAME} already exists.${NC}"
+  echo -e "${RED}Repository is already cloned. Do you want to delete it? Then use the --delete option.${NC}"
 fi
 
-# Generate Docker Compose file if setup-compose is set and volume already exists
+# Generate Docker Compose file if setup-compose is set
 if $SETUP_COMPOSE; then
   echo "Generating Docker Compose file for project ${PROJECT_NAME}..."
   docker run --rm -v ${VOLUME_NAME}:/${PROJECT_NAME} docker sh -c "$(declare -f generate_compose_file); generate_compose_file ${PROJECT_NAME} ${COMPOSE_FILE} ${VOLUME_NAME} ${PROJECT_TYPE}"
@@ -120,4 +126,3 @@ fi
 # Run Docker Compose using the cloned repository as a volume
 echo "Starting Docker Compose with ${COMPOSE_FILE}..."
 docker run --rm -e VOLUME_NAME=${VOLUME_NAME} -v ${VOLUME_NAME}:/${PROJECT_NAME} -v /var/run/docker.sock:/var/run/docker.sock -w /${PROJECT_NAME} docker compose -f ${COMPOSE_FILE} up
-
