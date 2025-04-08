@@ -3,6 +3,8 @@
 
 ## [upcoming] - ??
 
+## [v4] - 08.04.2025
+
 ### Added
 - Default alias for "nx" -> 'npx nx' 
 

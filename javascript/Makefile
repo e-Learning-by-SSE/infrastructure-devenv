@@ -38,7 +38,6 @@ image:
 		--build-arg INSTALL_FISH=$(INSTALL_FISH) \
 		--build-arg INSTALL_DOCKER=$(INSTALL_DOCKER) \
 		--build-arg INSTALL_NODEJS=$(INSTALL_NODEJS) \
-		--build-arg BASE_IMAGE=$(BASE_IMAGE) \
 		-t $(IMAGE_NAME):$(firstword $(TAGS_ARRAY)) .
 	for tag in $(wordlist 2,$(words $(TAGS_ARRAY)),$(TAGS_ARRAY)); do \
 		echo "Tagging image with: $$tag"; \

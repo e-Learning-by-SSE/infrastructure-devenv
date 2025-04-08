@@ -33,7 +33,7 @@ RUN if [ "$INSTALL_DOCKER" = "true" ]; then \
         bash /tmp/setup-docker.sh; \
     fi; \
     if [ "$INSTALL_NODEJS" = "true" ]; then \
-        curl -fsSL https://deb.nodesource.com/setup_21.x | bash - && \
+        curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && \
         apt-get install -y --no-install-recommends nodejs; \
     fi; \
     if [ "$INSTALL_FISH" = "true" ]; then \
