@@ -1,128 +1,104 @@
 #!/bin/bash
 
-# Function to display usage instructions
 usage() {
-  echo "Usage: $0 [-d|--delete] [-f|--file compose-file] -r|--repo <GitHub Repository URL> -p|--project <Project Name> [--setup-compose <js>]"
-  echo "  -d, --delete         Delete the volume before cloning"
-  echo "  -f, --file           Specify the Docker Compose file (default: compose-dev.yml)"
-  echo "  -r, --repo           Specify the GitHub Repository URL (only needed for the initial clone)"
-  echo "  -p, --project        Specify the Project Name"
-  echo "  --setup-compose      Generate a default Docker Compose file for the specified project type (e.g., js)"
+  echo "Usage: $0 [-d|--delete] [-f|--file compose-file] -r|--repo <GitHub Repository URL> -p|--project <Project Name> [--setup-compose <js>] [--podman]"
   exit 1
 }
 
-# Set default values
-DELETE_VOLUME=false
+# Defaults
+DELETE=false
 COMPOSE_FILE="compose-dev.yml"
 REPO_URL=""
 PROJECT_NAME=""
-VOLUME_NAME=""
 SETUP_COMPOSE=false
 PROJECT_TYPE=""
+USE_PODMAN=false
+RUNTIME_CMD="docker"
+COMPOSE_CMD="docker-compose"
 
-# Check options
-OPTS=$(getopt -o df:r:p: --long delete,file:,repo:,project:,setup-compose: -n 'parse-options' -- "$@")
-if [ $? != 0 ] ; then usage ; exit 1 ; fi
-
+# Parse args
+OPTS=$(getopt -o df:r:p: --long delete,file:,repo:,project:,setup-compose:,podman -n 'parse-options' -- "$@")
+if [ $? != 0 ]; then usage; fi
 eval set -- "$OPTS"
 
 while true; do
   case "$1" in
-    -d | --delete ) DELETE_VOLUME=true; shift ;;
-    -f | --file ) COMPOSE_FILE="$2"; shift; shift ;;
-    -r | --repo ) REPO_URL="$2"; shift; shift ;;
-    -p | --project ) PROJECT_NAME="$2"; shift; shift ;;
-    --setup-compose ) SETUP_COMPOSE=true; PROJECT_TYPE="$2"; shift; shift ;;
+    -d | --delete ) DELETE=true; shift ;;
+    -f | --file ) COMPOSE_FILE="$2"; shift 2 ;;
+    -r | --repo ) REPO_URL="$2"; shift 2 ;;
+    -p | --project ) PROJECT_NAME="$2"; shift 2 ;;
+    --setup-compose ) SETUP_COMPOSE=true; PROJECT_TYPE="$2"; shift 2 ;;
+    --podman ) USE_PODMAN=true; shift ;;
     -- ) shift; break ;;
     * ) break ;;
   esac
 done
 
-# Set volume name based on project name
-VOLUME_NAME="${PROJECT_NAME}-repository"
+[ -z "$PROJECT_NAME" ] && echo "Error: --project is required" && usage
 
-# Check if required arguments are provided when volume does not exist
-VOLUME_EXISTS=$(docker volume ls --format '{{.Name}}' | grep -w ${VOLUME_NAME})
-
-if [ -z "$VOLUME_EXISTS" ] && [ -z "$REPO_URL" ]; then
-  echo "Error: The --repo option is required for the initial repository clone."
-  usage
+# Set runtime
+if $USE_PODMAN; then
+  RUNTIME_CMD="podman"
+  COMPOSE_CMD="podman-compose"
 fi
 
-# Function to generate Docker Compose file
-generate_compose_file() {
-  local project_name="$1"
-  local compose_file="$2"
-  local volume_name="$3"
-  local project_type="$4"
+VOLUME_NAME="$PROJECT_NAME"
+PROJECT_DIR="./$PROJECT_NAME"
 
-  if [ "$project_type" == "js" ]; then
-    cat <<EOF > /${project_name}/${compose_file}
+# Delete folder
+if $DELETE; then
+  echo "Deleting ${PROJECT_DIR}..."
+  rm -rf "$PROJECT_DIR"
+fi
+
+# Clone if not present
+if [ ! -d "$PROJECT_DIR" ]; then
+  [ -z "$REPO_URL" ] && echo "Error: --repo is required for initial clone." && usage
+
+  echo "Cloning ${REPO_URL} into ${PROJECT_DIR}..."
+  git clone "$REPO_URL" "$PROJECT_DIR" || {
+    echo "Failed to clone."
+    exit 1
+  }
+
+  echo "Setting permissions..."
+  chown -R $(id -u):$(id -g) "$PROJECT_DIR"
+fi
+
+# Compose file generation
+if $SETUP_COMPOSE; then
+  echo "Generating ${COMPOSE_FILE} for ${PROJECT_TYPE}..."
+
+  if [ "$PROJECT_TYPE" == "js" ]; then
+    cat <<EOF > "${PROJECT_DIR}/${COMPOSE_FILE}"
 services:
   app:
     image: ghcr.io/e-learning-by-sse/dev-env-javascript:latest
-    entrypoint:
-      - sleep
-      - infinity
+    entrypoint: [ "sleep", "infinity" ]
     init: true
     volumes:
       - type: bind
         source: /var/run/docker.sock
         target: /var/run/docker.sock
-      - codebase:/code
-
-volumes:
-  codebase:
-    external: true
-    name: ${volume_name}
+      - type: bind
+        source: .
+        target: /code
+    environment:
+      - PROJECT_NAME=\${PROJECT_NAME}
+      - VOLUME_NAME=\${VOLUME_NAME}
 EOF
-    echo "Docker Compose file ${compose_file} has been generated for JavaScript project."
+    echo "${COMPOSE_FILE} generated."
   else
-    echo "Unsupported project type: ${project_type}"
+    echo "Unsupported project type: ${PROJECT_TYPE}"
     exit 1
   fi
-}
-
-# Delete the volume if the -d option is set
-if $DELETE_VOLUME; then
-  echo "Deleting volume ${VOLUME_NAME}..."
-  docker volume rm ${VOLUME_NAME} || echo "Volume ${VOLUME_NAME} does not exist, continuing..."
-  echo "Proceeding after attempting to delete volume ${VOLUME_NAME}."
 fi
 
-# Check if the volume already exists
-if [ -z "$VOLUME_EXISTS" ]; then
-  # Clone the repository into the volume if it doesn't exist
-  echo "Cloning repository ${REPO_URL} into volume ${VOLUME_NAME}..."
-  if ! docker run --rm -it -v ${VOLUME_NAME}:/${PROJECT_NAME} docker git clone ${REPO_URL} /${PROJECT_NAME}; then
-    echo "Failed to clone repository."
-    exit 1
-  fi
-  echo "Repository cloned into volume ${VOLUME_NAME} successfully."
+# Start Compose with env vars
+echo "Starting ${COMPOSE_CMD} with PROJECT_NAME=${PROJECT_NAME}..."
 
-  # Set permissions to 1000 for the cloned repository
-  echo "Setting permissions for ${PROJECT_NAME} to 1000..."
-  if ! docker run --rm -v ${VOLUME_NAME}:/${PROJECT_NAME} docker chown -R 1000:1000 /${PROJECT_NAME}; then
-    echo "Failed to set permissions."
-    exit 1
-  fi
-  echo "Permissions set successfully."
-else
-  RED='\033[0;31m'
-  YELLOW='\033[1;33m'
-  NC='\033[0m' # No Color
+(
+  cd "$PROJECT_DIR" || exit 1
+  PROJECT_NAME="$PROJECT_NAME" VOLUME_NAME="$VOLUME_NAME" $COMPOSE_CMD -f "$COMPOSE_FILE" up
+)
 
-  # Warn if the volume already exists
-  echo -e "${YELLOW}Volume ${VOLUME_NAME} already exists.${NC}"
-  echo -e "${RED}Repository is already cloned. Do you want to delete it? Then use the --delete option.${NC}"
-fi
-
-# Generate Docker Compose file if setup-compose is set
-if $SETUP_COMPOSE; then
-  echo "Generating Docker Compose file for project ${PROJECT_NAME}..."
-  docker run --rm -v ${VOLUME_NAME}:/${PROJECT_NAME} docker sh -c "$(declare -f generate_compose_file); generate_compose_file ${PROJECT_NAME} ${COMPOSE_FILE} ${VOLUME_NAME} ${PROJECT_TYPE}"
-fi
-
-# Run Docker Compose using the cloned repository as a volume
-echo "Starting Docker Compose with ${COMPOSE_FILE}..."
-docker run --rm -e VOLUME_NAME=${VOLUME_NAME} -v ${VOLUME_NAME}:/${PROJECT_NAME} -v /var/run/docker.sock:/var/run/docker.sock -w /${PROJECT_NAME} docker compose -f ${COMPOSE_FILE} up

@@ -1,53 +1,78 @@
 param (
     [switch]$Delete,
-    [string]$ComposeFile = "compose-dev.yml",
+    [string]$File = "compose-dev.yml",
     [string]$Repo,
-    [string]$Project
+    [Parameter(Mandatory=$true)][string]$Project,
+    [string]$SetupCompose,
+    [switch]$Podman
 )
 
 function Usage {
-    Write-Host "Usage: $($MyInvocation.MyCommand.Name) [-Delete] [-ComposeFile <Compose File>] -Repo <GitHub Repository URL> -Project <Project Name>"
-    Write-Host "  -Delete          Delete the volume before cloning"
-    Write-Host "  -ComposeFile     Specify the Docker Compose file (default: compose-dev.yml)"
-    Write-Host "  -Repo            Specify the GitHub Repository URL"
-    Write-Host "  -Project         Specify the Project Name"
+    Write-Host "Usage: bootstrap.ps1 [-Delete] [-File <compose-file>] -Repo <GitHub Repo> -Project <name> [-SetupCompose <type>] [-Podman]"
     exit 1
 }
 
-# Validate required parameters
-if (-not $Repo -or -not $Project) {
-    Usage
-}
+$RuntimeCmd = if ($Podman) { "podman" } else { "docker" }
+$ComposeCmd = if ($Podman) { "podman-compose" } else { "docker-compose" }
 
-# Set volume name based on project name
-$VolumeName = "${Project}-repository"
+$VolumeName = $Project
+$ProjectDir = Join-Path -Path $PSScriptRoot -ChildPath $Project
 
-# Delete the volume if the -Delete option is set
+# Delete project dir if needed
 if ($Delete) {
-    Write-Host "Deleting volume $VolumeName..."
-    docker volume rm $VolumeName -f
-    Write-Host "Proceeding after attempting to delete volume $VolumeName."
+    Write-Host "Deleting $ProjectDir..."
+    Remove-Item -Recurse -Force -ErrorAction Stop $ProjectDir
 }
 
-# Check if the volume already exists
-$VolumeExists = docker volume ls --format '{{.Name}}' |  Where-Object { $_ -eq $VolumeName }
+# Clone if necessary
+if (-not (Test-Path $ProjectDir)) {
+    if (-not $Repo) {
+        Write-Error "Missing required parameter: --repo"
+        Usage
+    }
 
-if (-not $VolumeExists) {
-    # Use a Docker container to clone the repository into the volume
-    Write-Host "Cloning repository $Repo into volume $VolumeName..."
-    if (-not (docker run --rm -it -v "${VolumeName}:/${Project}" docker git clone $Repo "/${Project}")) {
-        Write-Host "Failed to clone repository."
+    Write-Host "Cloning $Repo into $ProjectDir..."
+    git clone $Repo $ProjectDir
+    if ($LASTEXITCODE -ne 0) {
+        Write-Error "Failed to clone repository."
         exit 1
     }
-    Write-Host "Repository cloned into volume $VolumeName successfully."
-
-    # Set permissions to 1000 for the cloned repository
-    Write-Host "Setting permissions for ${Project} to 1000..."
-    docker run --rm -v "${VolumeName}:/${Project}" docker chown -R 1000:1000 "/${Project}"
-} else {
-    Write-Host "Volume $VolumeName already exists. Skipping clone."
 }
 
-# Run Docker Compose using the cloned repository as a volume
-Write-Host "Starting Docker Compose with $ComposeFile..."
-docker run --rm -e VOLUME_NAME=$VolumeName -v "${VolumeName}:/${Project}" -v "/var/run/docker.sock:/var/run/docker.sock" -w "/${Project}" docker compose -f $ComposeFile up
+# Generate compose file
+if ($SetupCompose) {
+    if ($SetupCompose -eq "js") {
+        Write-Host "Generating $File for javascript..."
+        @"
+services:
+  app:
+    image: ghcr.io/e-learning-by-sse/dev-env-javascript:latest
+    entrypoint: [ "sleep", "infinity" ]
+    init: true
+    volumes:
+      - type: bind
+        source: /var/run/docker.sock
+        target: /var/run/docker.sock
+      - type: bind
+        source: .
+        target: /code
+    environment:
+      - PROJECT_NAME=${Project}
+      - VOLUME_NAME=${VolumeName}
+"@ | Set-Content -Path (Join-Path $ProjectDir $File)
+        Write-Host "$File generated."
+    }
+    else {
+        Write-Error "Unsupported project type: $SetupCompose"
+        exit 1
+    }
+}
+
+# Start environment
+Write-Host "Starting $ComposeCmd with PROJECT_NAME=$Project..."
+
+Push-Location $ProjectDir
+$env:PROJECT_NAME = $Project
+$env:VOLUME_NAME = $VolumeName
+& $ComposeCmd -f $File up
+Pop-Location

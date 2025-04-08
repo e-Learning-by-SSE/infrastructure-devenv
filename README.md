@@ -12,8 +12,9 @@ Quickstart:
 bash bootstrap.sh --repo 'your-git-repo-url' --project project-name
 ```
 - Ensure you have a `compose-dev.yml` file in the root directory of your repository. We recommend using one of our maintained containers.
-- The entire repository is cloned into a Docker volume named after your project. On Linux, you only need to have Docker installed (Docker Compose is not required). Note that Podman is currently not supported (see issue #3).
-- After the initial clone, simply run `bash bootstrap.sh --project project-name` to start the dev containers.
+- The entire repository is cloned into a folder in your current workdir. 
+- You need to have `docker` and `docker-compose` installed, or, when specifying `--podman` you need to have `podman` and `podman-compose` installed.
+- After the initial clone, simply run `bash bootstrap.sh --project project-name` to start the dev containers. 
 
 Additional Features:
 - Run the script without any parameters to view the help page.
