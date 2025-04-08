@@ -9,8 +9,10 @@ apt-get update
 apt-get -y install docker-ce docker-ce-cli containerd.io docker-compose-plugin
 
 # Configure docker
-usermod -aG docker node
-echo 'node ALL=(ALL) NOPASSWD: /usr/bin/docker' >> /etc/sudoers
+USER_NAME=$(getent passwd 1000 | cut -d: -f1)
+usermod -aG docker "$USER_NAME"
+echo "$USER_NAME ALL=(ALL) NOPASSWD: /usr/bin/docker" >> /etc/sudoers
+
 
 # Install Podman
 apt-get install -y \

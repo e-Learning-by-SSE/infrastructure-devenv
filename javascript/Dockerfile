@@ -20,7 +20,7 @@ RUN apt-get update --fix-missing && apt-get install -y \
     
 COPY home/* /home/devuser/
 
-RUN useradd -m devuser -s /bin/bash && \
+RUN useradd -m devuser -u 1000 -s /bin/bash && \
     mkdir -p /code && \
     chown devuser:devuser /code && \
     chown -R devuser:devuser /home/devuser

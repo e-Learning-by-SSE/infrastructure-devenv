@@ -26,6 +26,10 @@ The JavaScript container is specifically designed for development with JavaScrip
 
 [Pull](https://github.com/e-Learning-by-SSE/infrastructure-devenv/pkgs/container/dev-env-javascript) and run the container. Mount your code into `/code` as this is the default working directory. If you need backward compatibility with the Docker Desktop dev environment feature, use the v2 version of the JavaScript environment. For more information, see the linked documentation.
 
+We always provide the latest LTS version inside the container. It is possible to switch the node version via ` nvm`, see [fisher-nvm](https://github.com/jorgebucaran/nvm.fish). 
+
+There is a SLIM verison of this container in case frequent pulls are needed. See [releases](https://github.com/e-Learning-by-SSE/infrastructure-devenv/pkgs/container/dev-env-javascript)
+
 
 # Miscellaneous
 
