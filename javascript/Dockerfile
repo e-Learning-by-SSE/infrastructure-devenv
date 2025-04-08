@@ -1,10 +1,10 @@
 ARG BASE_IMAGE=debian:bookworm
+FROM ${BASE_IMAGE}
+ENV NPM_CONFIG_LOGLEVEL=warn
+
 ARG INSTALL_FISH=false
 ARG INSTALL_DOCKER=false
 ARG INSTALL_NODEJS=true
-
-FROM ${BASE_IMAGE}
-ENV NPM_CONFIG_LOGLEVEL=warn
 
 ## <BASE Preparation>
 RUN apt-get update --fix-missing && apt-get install -y \

@@ -7,6 +7,7 @@
 
 ### Added
 - Default alias for "nx" -> 'npx nx' 
+- Added nvm for node.js version management to fish
 
 ### Changed
 - Default working dir is changed from `/com.docker.devenvironments.code` to `/code`. 
