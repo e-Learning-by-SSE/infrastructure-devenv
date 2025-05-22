@@ -1,8 +1,10 @@
-IMAGE_NAME=ghcr.io/e-learning-by-sse/dev-env-javascript
+IMAGE_NAME=ghcr.io/e-learning-by-sse/dev-env-moodle
 INSTALL_FISH=false
 INSTALL_DOCKER=false
 INSTALL_NODEJS=false
-INSTALL_CYPRESS_LIBS=false
+INSTALL_PHP=false
+INSTALL_MOODLE=false
+BASE_IMAGE=node:21-bookworm
 
 # Override the default values if the flags are set
 ifdef FISH
@@ -17,8 +19,15 @@ ifdef NODEJS
     INSTALL_NODEJS=true
 endif
 
-ifdef CYPRESS
-    INSTALL_CYPRESS_LIBS=true
+ifdef PHP
+    BASE_IMAGE=php:8.3.12-apache-bookworm
+    INSTALL_PHP=true
+endif
+
+ifdef MOODLE
+    BASE_IMAGE=php:8.3.12-apache-bookworm
+    INSTALL_PHP=true
+    INSTALL_MOODLE=true
 endif
 
 # Default tag if IMAGE_TAG is not set
@@ -38,13 +47,16 @@ image:
 	@echo "  - INSTALL_FISH=$(INSTALL_FISH)"
 	@echo "  - INSTALL_DOCKER=$(INSTALL_DOCKER)"
 	@echo "  - INSTALL_NODEJS=$(INSTALL_NODEJS)"
-	@echo "  - INSTALL_CYPRESS_LIBS=$(INSTALL_CYPRESS_LIBS)"
+	@echo "  - INSTALL_PHP=$(INSTALL_PHP)"
+	@echo "  - INSTALL_MOODLE=$(INSTALL_MOODLE)"
 	@echo "  - TAGS=$(TAGS_ARRAY)"
 	docker build \
 		--build-arg INSTALL_FISH=$(INSTALL_FISH) \
 		--build-arg INSTALL_DOCKER=$(INSTALL_DOCKER) \
 		--build-arg INSTALL_NODEJS=$(INSTALL_NODEJS) \
-		--build-arg INSTALL_CYPRESS=$(INSTALL_CYPRESS_LIBS) \
+		--build-arg INSTALL_PHP=$(INSTALL_PHP) \
+		--build-arg INSTALL_MOODLE=$(INSTALL_MOODLE) \
+		--build-arg BASE_IMAGE=$(BASE_IMAGE) \
 		-t $(IMAGE_NAME):$(firstword $(TAGS_ARRAY)) .
 	for tag in $(wordlist 2,$(words $(TAGS_ARRAY)),$(TAGS_ARRAY)); do \
 		echo "Tagging image with: $$tag"; \

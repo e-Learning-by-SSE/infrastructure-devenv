@@ -12,7 +12,6 @@ This Makefile is used to build and publish Docker images with optional component
 - **FISH**: Set to [`true`] to include Fish shell in the Docker image.
 - **DOCKER**: Set to [`true`] to include Docker and Podman CLI in the Docker image.
 - **NODEJS**: Set to [`true`]to include Node.js in the Docker image.
-- **CYPRESS**: Set to [`true`]to include system libries required to run cypress tests.
 - **IMAGE_TAG**: Specifies the tag for the Docker image. Defaults to [`latest`] if not set.
 
 #### Targets

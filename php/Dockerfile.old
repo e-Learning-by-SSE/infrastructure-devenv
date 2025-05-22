@@ -1,0 +1,85 @@
+ARG BASE_IMAGE=debian:bookworm
+ARG INSTALL_FISH=false
+ARG INSTALL_DOCKER=true
+ARG INSTALL_PHP=true
+ARG INSTALL_MOODLE=true
+
+FROM ${BASE_IMAGE}
+ENV NPM_CONFIG_LOGLEVEL=warn
+
+## <BASE Preparation>
+RUN apt-get update --fix-missing && apt-get install -y \
+    curl \
+    xz-utils \
+    build-essential \
+    python3 \
+    git \
+    vim \
+    bash \
+    sudo && \
+    apt-get clean
+    
+COPY home/* /home/devuser/
+
+RUN useradd -m devuser -s /bin/bash && \
+    mkdir -p /code && \
+    chown devuser:devuser /code && \
+    chown -R devuser:devuser /home/devuser
+## </ Base Preparation>
+
+## <Feature Tags>
+ENV PHP_INI_DIR=/usr/local/etc/php
+COPY php/* $PHP_INI_DIR/conf.d
+RUN rm -r /var/www/html && ln -s /code /var/www/html
+RUN mv $PHP_INI_DIR/php.ini-development $PHP_INI_DIR/conf.d/php.ini
+
+COPY setup-docker.sh /tmp/setup-docker.sh
+COPY setup-fish.sh /tmp/setup-fish.sh
+RUN if [ "$INSTALL_DOCKER" = "true" ]; then \
+        bash /tmp/setup-docker.sh; \
+    fi; \
+    if [ "$INSTALL_FISH" = "true" ]; then \
+        bash /tmp/setup-fish.sh; \
+    fi;
+
+RUN  if [ "$INSTALL_PHP" = "true" ]; then \
+        ln -s /code /var/www/html; \
+        mv "$PHP_INI_DIR/php.ini-development" "$PHP_INI_DIR/conf.d/php.ini"; \
+        apt-get install -y --fix-missing php-xdebug; \
+    fi;
+RUN apt-get clean
+
+
+#        apt-get install -y --fix-missing php8.1 php8.1-cli php-xdebug apache2 libapache2-mod-php php-xml composer; \
+#        if [ "$INSTALL_MOODLE" = "true" ]; then \
+#            echo "<VirtualHost *:80>" > /etc/apache2/sites-available/moodle.conf; \
+#            echo "    ServerAdmin admin@example.com" >> /etc/apache2/sites-available/moodle.conf; \
+#            echo "    DocumentRoot /code" >> /etc/apache2/sites-available/moodle.conf; \
+#            echo "    ServerName moodle.local" >> /etc/apache2/sites-available/moodle.conf; \
+#            echo "" >> /etc/apache2/sites-available/moodle.conf; \
+#            echo "    <Directory /code" >> /etc/apache2/sites-available/moodle.conf; \
+#            echo "        Options Indexes FollowSymLinks" >> /etc/apache2/sites-available/moodle.conf; \
+#            echo "        AllowOverride All" >> /etc/apache2/sites-available/moodle.conf; \
+#            echo "        Require all granted" >> /etc/apache2/sites-available/moodle.conf; \
+#            echo "    </Directory>" >> /etc/apache2/sites-available/moodle.conf; \
+#            echo "" >> /etc/apache2/sites-available/moodle.conf; \
+#            echo "    ErrorLog ${APACHE_LOG_DIR}/error.log" >> /etc/apache2/sites-available/moodle.conf; \
+#            echo "    CustomLog ${APACHE_LOG_DIR}/access.log combined" >> /etc/apache2/sites-available/moodle.conf; \
+#            echo "</VirtualHost>" >> /etc/apache2/sites-available/moodle.conf; \
+#            a2ensite moodle.conf; \
+#            a2enmod rewrite; \
+#            echo "127.0.0.1   moodle.local" >> /etc/hosts; \
+#        fi; \
+
+
+## </ Feature Tags>
+
+USER devuser
+
+## <Non-Root Features>
+## </Non-Root Features
+
+WORKDIR /code
+VOLUME /code
+EXPOSE 80
+CMD service apache2 start && /bin/bash

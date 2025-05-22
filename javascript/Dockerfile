@@ -5,6 +5,7 @@ ENV NPM_CONFIG_LOGLEVEL=warn
 ARG INSTALL_FISH=false
 ARG INSTALL_DOCKER=false
 ARG INSTALL_NODEJS=true
+ARG INSTALL_CYPRESS=true
 
 ## <BASE Preparation>
 RUN apt-get update --fix-missing && apt-get install -y \
@@ -17,7 +18,7 @@ RUN apt-get update --fix-missing && apt-get install -y \
     bash \
     sudo && \
     apt-get clean
-    
+
 COPY home/* /home/devuser/
 
 RUN useradd -m devuser -u 1000 -s /bin/bash && \
@@ -39,7 +40,29 @@ RUN if [ "$INSTALL_DOCKER" = "true" ]; then \
     if [ "$INSTALL_FISH" = "true" ]; then \
         bash /tmp/setup-fish.sh; \
     fi; \
-    apt-get clean;
+    if [ "$INSTALL_CYPRESS" = "true" ]; then \
+        apt-get update --fix-missing && apt-get install -y \
+            libnss3 \
+            libatk-bridge2.0-0 \
+            libgtk-3-0 \
+            libxss1 \
+            libasound2 \
+            libxshmfence1 \
+            libgbm1 \
+            libdrm2 \
+            libatk1.0-0 \
+            libxcomposite1 \
+            libxdamage1 \
+            libxrandr2 \
+            libpango-1.0-0 \
+            libcups2 \
+            libpangocairo-1.0-0 \
+            libatspi2.0-0 \
+            libx11-xcb1 \
+            libxinerama1; \
+    fi; \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 ## </ Feature Tags>
  
