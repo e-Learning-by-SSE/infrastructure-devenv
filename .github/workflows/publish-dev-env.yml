@@ -26,7 +26,7 @@ jobs:
       - name: Build Docker image
         run: |
           IMAGE_NAME=ghcr.io/sep-selflearn-ss25/infrastructure-devenv:latest
-          docker build -t $IMAGE_NAME .
+          docker build -t $IMAGE_NAME -f javascript/Dockerfile javascript
 
       - name: Push Docker image
         run: |
