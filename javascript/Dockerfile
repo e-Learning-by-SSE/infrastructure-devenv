@@ -59,7 +59,10 @@ RUN if [ "$INSTALL_DOCKER" = "true" ]; then \
             libpangocairo-1.0-0 \
             libatspi2.0-0 \
             libx11-xcb1 \
-            libxinerama1; \
+            libxinerama1 \
+            xvfb \
+            xauth \
+            libxtst6; \
     fi; \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
